@@ -4,6 +4,7 @@ import requests
 from progress.bar import IncrementalBar
 
 my_id = input('Укажите id вашего профиля ВК: ')
+ya_token = input('Укажите токен Яндекс.Диска: ')
 type_photo = input('Укажите идентификатор альбома, где: "wall" — фотографии со стены, "profile" — фотографии профиля, '
                    '"saved" — сохраненные фотографии: ')
 
@@ -13,7 +14,7 @@ type_photo = input('Укажите идентификатор альбома, г
 def get_vk_token() -> str:
     url = 'https://oauth.vk.com/authorize/'
     params = {
-        'client_id': '',  # Необходимо вставить токен приложения
+        'client_id': '51755559',
         'redirect_uri': 'https://oauth.vk.com/blank.html',
         'display': 'page',
         'scope': 'photos',
@@ -50,45 +51,42 @@ class VK:
 
 # Получение фотографии
 
-vk_client = VK(vk_token, my_id)
-file1 = vk_client.get_photos()
-all_count_photos = vk_client.get_photos().get('response', '').get('count', '')
-count_photos = input(f'Укажите желаемое число сохраняемых фотографий (всего фото в альбоме: {all_count_photos}): ')
+file1 = VK(vk_token, my_id).get_photos()
+all_count_photos = VK(vk_token, my_id).get_photos().get('response', '').get('count', '')
+
 
 # Указание колличества фотографий
+def check_count_photos(count_photos: str) -> int:
+    if all_count_photos == 0:
+        print('Кол-во фотографий в альбоме: 0')
+        return all_count_photos
 
-if all_count_photos == 0:
-    count_photos = all_count_photos
-    print('Кол-во фотографий в альбоме: 0')
+    elif (count_photos.isdigit() and
+          0 < int(count_photos) <= all_count_photos):
+        return int(count_photos)
 
-elif (count_photos.isdigit() and
-      0 < int(count_photos) <= all_count_photos):
-    count_photos = int(count_photos)
+    elif (count_photos.isdigit() and
+          not 0 < int(count_photos) <= all_count_photos and
+          all_count_photos >= 5):
+        print('Некорректный ввод, число превышает кол-во фотографий в альбоме, '
+              'выставленно число фотографий по умолчанию: 5')
+        return 5
 
-elif (count_photos.isdigit() and
-      not 0 < int(count_photos) <= all_count_photos and
-      all_count_photos >= 5):
-    count_photos = 5
-    print('Некорректный ввод, число превышает кол-во фотографий в альбоме, '
-          'выставленно число фотографий по умолчанию: 5')
+    else:
+        if not count_photos.isdigit() and all_count_photos >= 5:
+            print('Некорректный ввод, выставленно число фотографий по умолчанию: 5')
+            return 5
 
-else:
-    if not count_photos.isdigit() and all_count_photos >= 5:
-        count_photos = 5
-        print('Некорректный ввод, выставленно число фотографий по умолчанию: 5')
+        elif not count_photos.isdigit() and all_count_photos < 5:
+            print('Некорректный ввод, выставленно общее число фотографий: ', count_photos)
+            return all_count_photos
 
-    elif not count_photos.isdigit() and all_count_photos < 5:
-        count_photos = all_count_photos
-        print('Некорректный ввод, выставленно общее число фотографий: ', count_photos)
+
+count_photos = input(f'Укажите желаемое число сохраняемых фотографий (всего фото в альбоме: {all_count_photos}): ')
+check_count_photos(count_photos)
 
 # Создание папки Яндекс диска
-ya_token = input('Укажите токен Яндекс.Диска: ')
 ya_url = 'https://cloud-api.yandex.net'
-folder_name = input('Укажите название папки для ее создания на ЯД (имя должно быть уникально): ')
-
-headers = {
-    'Authorization': ya_token
-}
 
 
 def create_folder(_folder_name: str) -> str or int:
@@ -98,7 +96,7 @@ def create_folder(_folder_name: str) -> str or int:
     url_for_create_folder = ya_url + '/v1/disk/resources'
 
     responce = requests.put(url_for_create_folder,
-                            headers=headers,
+                            headers={'Authorization': ya_token},
                             params=_params)
 
     if 200 <= responce.status_code < 300:
@@ -109,6 +107,7 @@ def create_folder(_folder_name: str) -> str or int:
         return responce.status_code
 
 
+folder_name = input('Укажите название папки для ее создания на ЯД (имя должно быть уникально): ')
 create_folder(folder_name)
 
 
@@ -117,9 +116,9 @@ def send_on_ya():
     url_for_get_link = ya_url + '/v1/disk/resources/upload'
     information_about_photos = []
 
-    bar = IncrementalBar('Countdown', max=count_photos)
+    bar = IncrementalBar('Countdown', max=check_count_photos(count_photos))
 
-    for i in range(count_photos):
+    for i in range(check_count_photos(count_photos)):
         bar.next()
 
         photo = file1.get('response', '').get('items', '')[i]
@@ -149,7 +148,7 @@ def send_on_ya():
 
         response = requests.get(url_for_get_link,
                                 params=params,
-                                headers=headers)
+                                headers={'Authorization': ya_token})
 
         url_upload = response.json().get('href', '')  # Ссылка, куда загружать
 
