@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 import requests
 from progress.bar import IncrementalBar
 
-my_id = input('Укажите id вашего профиля ВК: ')
+my_id = input('Укажите id профиля ВК: ')
 ya_token = input('Укажите токен Яндекс.Диска: ')
 type_photo = input('Укажите идентификатор альбома, где: "wall" — фотографии со стены, "profile" — фотографии профиля, '
                    '"saved" — сохраненные фотографии: ')
@@ -38,6 +38,7 @@ class VK:
 
     def get_params(self) -> dict:
         return {
+            'owner_id': my_id,
             'access_token': self.token,
             'v': '5.131'
         }
@@ -52,33 +53,33 @@ class VK:
 # Получение фотографии
 
 file1 = VK(vk_token, my_id).get_photos()
-all_count_photos = VK(vk_token, my_id).get_photos().get('response', '').get('count', '')
+all_count_photos = file1.get('response', '').get('count', '')
 
 
 # Указание колличества фотографий
-def check_count_photos(count_photos: str) -> int:
+def check_count_photos(photos: str) -> int:
     if all_count_photos == 0:
         print('Кол-во фотографий в альбоме: 0')
         return all_count_photos
 
-    elif (count_photos.isdigit() and
-          0 < int(count_photos) <= all_count_photos):
-        return int(count_photos)
+    elif (photos.isdigit() and
+          0 < int(photos) <= all_count_photos):
+        return int(photos)
 
-    elif (count_photos.isdigit() and
-          not 0 < int(count_photos) <= all_count_photos and
+    elif (photos.isdigit() and
+          not 0 < int(photos) <= all_count_photos and
           all_count_photos >= 5):
         print('Некорректный ввод, число превышает кол-во фотографий в альбоме, '
               'выставленно число фотографий по умолчанию: 5')
         return 5
 
     else:
-        if not count_photos.isdigit() and all_count_photos >= 5:
+        if not photos.isdigit() and all_count_photos >= 5:
             print('Некорректный ввод, выставленно число фотографий по умолчанию: 5')
             return 5
 
-        elif not count_photos.isdigit() and all_count_photos < 5:
-            print('Некорректный ввод, выставленно общее число фотографий: ', count_photos)
+        elif not photos.isdigit() and all_count_photos < 5:
+            print('Некорректный ввод, выставленно общее число фотографий: ', photos)
             return all_count_photos
 
 
