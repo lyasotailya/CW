@@ -100,6 +100,8 @@ def create_folder(_folder_name: str) -> str or int:
                             headers={'Authorization': ya_token},
                             params=_params)
 
+    assert 200 <= responce.status_code < 300
+
     if 200 <= responce.status_code < 300:
         return responce.json().get('href', '')
     elif responce.status_code == 409:
